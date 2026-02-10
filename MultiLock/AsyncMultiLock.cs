@@ -1,0 +1,81 @@
+namespace NoP77svk.Threading;
+
+using System;
+using System.Collections.Concurrent;
+using System.Threading;
+using System.Threading.Tasks;
+
+public class AsyncMultiLock<TKey>
+{
+    private readonly ConcurrentDictionary<TKey, SemaphoreSlim> _locks = new();
+
+    public TimeSpan? LockAcquireTimeout { get; init; } = null;
+
+    public SemaphoreSlim this[TKey key] => GetLock(key);
+
+    public void ReleaseLock(TKey key)
+    {
+        if (!_locks.TryRemove(key, out var lockObject))
+        {
+            return;
+        }
+
+        lockObject.Release();
+        lockObject.Dispose();
+    }
+
+    public async Task<IDisposable> AcquireAutoReleaseLock(TKey key, TimeSpan? lockAcquireTimeout)
+    {
+        SemaphoreSlim lockObject = GetLock(key);
+
+        if (lockAcquireTimeout is null)
+        {
+            await lockObject.WaitAsync();
+        }
+        else
+        {
+            if (!await lockObject.WaitAsync(lockAcquireTimeout ?? TimeSpan.Zero))
+            {
+                throw new TimeoutException($"Cannot acquire lock on key {key}");
+            }
+        }
+
+        return new LockAutoRelease(() => ReleaseLock(key));
+    }
+
+    public async Task<IDisposable> AcquireAutoReleaseLock(TKey key, int? lockAcquireTimeout)
+        => AcquireAutoReleaseLock(key, lockAcquireTimeout is null ? null : TimeSpan.FromMilliseconds(lockAcquireTimeout ?? 0));
+
+    public async Task<IDisposable> AcquireAutoReleaseLock(TKey key)
+        => AcquireAutoReleaseLock(key, LockAcquireTimeout);
+
+    private SemaphoreSlim GetLock(TKey key) => _locks.GetOrAdd(key, _ => new SemaphoreSlim(1));
+
+    private class LockAutoRelease : IDisposable
+    {
+        private readonly Action _releaseAction;
+        private bool disposedValue;
+
+        public LockAutoRelease(Action releaseAction) => _releaseAction = releaseAction;
+
+        public void Dispose()
+        {
+            // Do not change this code. Put cleanup code in 'Dispose(bool disposing)' method
+            Dispose(disposing: true);
+            GC.SuppressFinalize(this);
+        }
+
+        protected virtual void Dispose(bool disposing)
+        {
+            if (!disposedValue)
+            {
+                if (disposing)
+                {
+                    _releaseAction?.Invoke();
+                }
+
+                disposedValue = true;
+            }
+        }
+    }
+}
