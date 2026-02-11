@@ -23,9 +23,14 @@ public class MultiLock<TKey, TLock>
     {
         lockObject = GetLock(key);
 
-        return lockAcquireTimeout is null
+        bool lockAcquired = lockAcquireTimeout is null
             ? Monitor.TryEnter(lockObject)
-            : Monitor.TryEnter(lockObject, LockAcquireTimeout ?? TimeSpan.Zero);
+            : Monitor.TryEnter(lockObject, (TimeSpan)lockAcquireTimeout);
+
+        // note: Let's add the lock again, since another thread may just have removed it from the collection upon lock release.
+        _locks.TryAdd(key, lockObject);
+
+        return lockAcquired;
     }
 
     public bool TryAcquireLock(TKey key, int? lockAcquireTimeoutMilliseconds, out TLock lockObject)
