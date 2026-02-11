@@ -13,7 +13,6 @@
 		<PackageIcon>multi-lock.png</PackageIcon>
 		<PackageLicenseExpression>CC-BY-SA-4.0</PackageLicenseExpression>
 		<PackageTags>threading;locking;concurrency;library;netstandard</PackageTags>
-		<PackageType>Library</PackageType>
 
 		<RepositoryType>git</RepositoryType>
 		<RepositoryUrl>https://github.com/nop77svk/dotnet.nuget.multi-lock.git</RepositoryUrl>
