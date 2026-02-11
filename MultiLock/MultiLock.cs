@@ -68,31 +68,12 @@ public class MultiLock<TKey, TLock>
     public bool ExecuteUnderLock(TKey key, Action lockedCode)
         => TryExecuteUnderLock(key, LockAcquireTimeout, lockedCode);
 
-    public async Task<bool> ExecuteUnderLockAsync(TKey key, TimeSpan? lockAcquireTimeout, Func<Task> lockedCode)
-    {
-        bool isLockedUponKey = TryAcquireLock(key, lockAcquireTimeout, out TLock _);
-
-        if (isLockedUponKey)
-        {
-            try
-            {
-                await lockedCode();
-            }
-            finally
-            {
-                ReleaseLock(key);
-            }
-        }
-
-        return isLockedUponKey;
-    }
-
-    public async Task<bool> ExecuteUnderLockAsync(TKey key, Func<Task> lockedCode)
-        => await ExecuteUnderLockAsync(key, LockAcquireTimeout, lockedCode);
+    public bool TryExecuteUnderLock(TKey key, Action lockedCode)
+        => TryExecuteUnderLock(key, LockAcquireTimeout, lockedCode);
 
     public IDisposable AcquireAutoReleaseLock(TKey key, TimeSpan? lockAcquireTimeout)
     {
-        if (!TryAcquireLock(key, lockAcquireTimeout, out var _))
+        if (!TryAcquireLock(key, lockAcquireTimeout, out TLock _))
         {
             throw new TimeoutException($"Failed to acquire lock on key {key}");
         }
