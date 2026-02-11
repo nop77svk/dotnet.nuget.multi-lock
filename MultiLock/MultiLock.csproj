@@ -10,13 +10,13 @@
 
 		<PackageId>NoP77svk.Threading</PackageId>
 		<PackageReadmeFile>README.md</PackageReadmeFile>
-		<PackageIcon>multi-lock.icon.png</PackageIcon>
+		<PackageIcon>multi-lock.png</PackageIcon>
 		<PackageLicenseExpression>CC-BY-SA-4.0</PackageLicenseExpression>
 		<PackageTags>threading;locking;concurrency;library;netstandard</PackageTags>
 		<PackageType>Library</PackageType>
 
 		<RepositoryType>git</RepositoryType>
-		<RepositoryUrl>https://github.com/nop77svk/dotnet.nuget.multi-lock</RepositoryUrl>
+		<RepositoryUrl>https://github.com/nop77svk/dotnet.nuget.multi-lock.git</RepositoryUrl>
 	</PropertyGroup>
 
 	<PropertyGroup Condition="'$(Configuration)' == 'Release'">
@@ -25,7 +25,7 @@
 
 	<ItemGroup>
 		<None Include="$(ProjectDir)/../_assets/README.md" Pack="true" PackagePath="/" />
-		<None Include="$(ProjectDir)/../_assets/multi-lock.icon.png" Pack="true" PackagePath="/" />
+		<None Include="$(ProjectDir)/../_assets/multi-lock.png" Pack="true" PackagePath="/" />
 		<None Include="$(ProjectDir)/../_assets/LICENSE" Pack="true" PackagePath="/" />
 	</ItemGroup>
 

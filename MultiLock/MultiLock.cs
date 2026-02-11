@@ -3,7 +3,6 @@ namespace NoP77svk.Threading;
 using System;
 using System.Collections.Concurrent;
 using System.Threading;
-using System.Threading.Tasks;
 
 public class MultiLock<TKey, TLock>
 {
@@ -23,26 +22,26 @@ public class MultiLock<TKey, TLock>
     {
         lockObject = GetLock(key);
 
-        return lockAcquireTimeout is null
+        bool lockAcquired = lockAcquireTimeout is null
             ? Monitor.TryEnter(lockObject)
-            : Monitor.TryEnter(lockObject, LockAcquireTimeout ?? TimeSpan.Zero);
+            : Monitor.TryEnter(lockObject, (TimeSpan)lockAcquireTimeout);
+
+        // note: Let's add the lock again, since another thread may just have removed it from the collection upon lock release.
+        _locks.TryAdd(key, lockObject);
+
+        return lockAcquired;
     }
 
     public bool TryAcquireLock(TKey key, int? lockAcquireTimeoutMilliseconds, out TLock lockObject)
-        => TryAcquireLock(key, TimeSpan.FromMilliseconds(lockAcquireTimeoutMilliseconds ?? 0), out lockObject);
+        => TryAcquireLock(key, lockAcquireTimeoutMilliseconds?.MillisecondsToTimeSpan(), out lockObject);
 
     public bool TryAcquireLock(TKey key, out TLock lockObject)
         => TryAcquireLock(key, LockAcquireTimeout, out lockObject);
 
     public void ReleaseLock(TKey key)
     {
-        _locks.TryRemove(key, out var lockObject);
-
-        if (lockObject is IDisposable disposable)
-        {
-            disposable.Dispose();
-        }
-
+        // note: We must first remove the lock from the collection, then release it, so that other threads may get the chance of adding it again after this lock release.
+        _locks.TryRemove(key, out TLock lockObject);
         Monitor.Exit(lockObject);
     }
 
@@ -65,34 +64,15 @@ public class MultiLock<TKey, TLock>
         return isLockedUponKey;
     }
 
-    public bool ExecuteUnderLock(TKey key, Action lockedCode)
+    public bool TryExecuteUnderLock(TKey key, int? lockAcquireTimeoutMilliseconds, Action lockedCode)
+        => TryExecuteUnderLock(key, lockAcquireTimeoutMilliseconds?.MillisecondsToTimeSpan(), lockedCode);
+
+    public bool TryExecuteUnderLock(TKey key, Action lockedCode)
         => TryExecuteUnderLock(key, LockAcquireTimeout, lockedCode);
-
-    public async Task<bool> ExecuteUnderLockAsync(TKey key, TimeSpan? lockAcquireTimeout, Func<Task> lockedCode)
-    {
-        bool isLockedUponKey = TryAcquireLock(key, lockAcquireTimeout, out TLock _);
-
-        if (isLockedUponKey)
-        {
-            try
-            {
-                await lockedCode();
-            }
-            finally
-            {
-                ReleaseLock(key);
-            }
-        }
-
-        return isLockedUponKey;
-    }
-
-    public async Task<bool> ExecuteUnderLockAsync(TKey key, Func<Task> lockedCode)
-        => await ExecuteUnderLockAsync(key, LockAcquireTimeout, lockedCode);
 
     public IDisposable AcquireAutoReleaseLock(TKey key, TimeSpan? lockAcquireTimeout)
     {
-        if (!TryAcquireLock(key, lockAcquireTimeout, out var _))
+        if (!TryAcquireLock(key, lockAcquireTimeout, out TLock _))
         {
             throw new TimeoutException($"Failed to acquire lock on key {key}");
         }
@@ -101,7 +81,7 @@ public class MultiLock<TKey, TLock>
     }
 
     public IDisposable AcquireAutoReleaseLock(TKey key, int? lockAcquireTimeout)
-        => AcquireAutoReleaseLock(key, lockAcquireTimeout is null ? null : TimeSpan.FromMilliseconds(lockAcquireTimeout ?? 0));
+        => AcquireAutoReleaseLock(key, lockAcquireTimeout?.MillisecondsToTimeSpan());
 
     public IDisposable AcquireAutoReleaseLock(TKey key)
         => AcquireAutoReleaseLock(key, LockAcquireTimeout);

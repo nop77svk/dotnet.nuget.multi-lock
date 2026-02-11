@@ -15,16 +15,36 @@ public class AsyncMultiLock<TKey>
 
     public void ReleaseLock(TKey key)
     {
-        if (!_locks.TryRemove(key, out var lockObject))
-        {
-            return;
-        }
-
+        _locks.TryRemove(key, out var lockObject);
         lockObject.Release();
-        lockObject.Dispose();
     }
 
-    public async Task<IDisposable> AcquireAutoReleaseLock(TKey key, TimeSpan? lockAcquireTimeout)
+    public IDisposable AcquireAutoReleaseLock(TKey key, TimeSpan? lockAcquireTimeout)
+    {
+        SemaphoreSlim lockObject = GetLock(key);
+
+        if (lockAcquireTimeout is null)
+        {
+            lockObject.Wait();
+        }
+        else if (!lockObject.Wait(lockAcquireTimeout ?? TimeSpan.Zero))
+        {
+            throw new TimeoutException($"Cannot acquire lock on key {key}");
+        }
+
+        // note: Let's add the lock again, since another thread may just have removed it from the collection upon lock release.
+        _locks.TryAdd(key, lockObject);
+
+        return new LockAutoRelease(() => ReleaseLock(key));
+    }
+
+    public IDisposable AcquireAutoReleaseLock(TKey key, int? lockAcquireTimeoutMilliseconds)
+        => AcquireAutoReleaseLock(key, lockAcquireTimeoutMilliseconds?.MillisecondsToTimeSpan());
+
+    public IDisposable AcquireAutoReleaseLock(TKey key)
+        => AcquireAutoReleaseLock(key, LockAcquireTimeout);
+
+    public async Task<IDisposable> AcquireAutoReleaseLockAsync(TKey key, TimeSpan? lockAcquireTimeout)
     {
         SemaphoreSlim lockObject = GetLock(key);
 
@@ -32,22 +52,22 @@ public class AsyncMultiLock<TKey>
         {
             await lockObject.WaitAsync();
         }
-        else
+        else if (!await lockObject.WaitAsync(lockAcquireTimeout ?? TimeSpan.Zero))
         {
-            if (!await lockObject.WaitAsync(lockAcquireTimeout ?? TimeSpan.Zero))
-            {
-                throw new TimeoutException($"Cannot acquire lock on key {key}");
-            }
+            throw new TimeoutException($"Cannot acquire lock on key {key}");
         }
+
+        // note: Let's add the lock again, since another thread may just have removed it from the collection upon lock release.
+        _locks.TryAdd(key, lockObject);
 
         return new LockAutoRelease(() => ReleaseLock(key));
     }
 
-    public async Task<IDisposable> AcquireAutoReleaseLock(TKey key, int? lockAcquireTimeout)
-        => AcquireAutoReleaseLock(key, lockAcquireTimeout is null ? null : TimeSpan.FromMilliseconds(lockAcquireTimeout ?? 0));
+    public async Task<IDisposable> AcquireAutoReleaseLockAsync(TKey key, int? lockAcquireTimeoutMilliseconds)
+        => await AcquireAutoReleaseLockAsync(key, lockAcquireTimeoutMilliseconds?.MillisecondsToTimeSpan());
 
-    public async Task<IDisposable> AcquireAutoReleaseLock(TKey key)
-        => AcquireAutoReleaseLock(key, LockAcquireTimeout);
+    public async Task<IDisposable> AcquireAutoReleaseLockAsync(TKey key)
+        => await AcquireAutoReleaseLockAsync(key, LockAcquireTimeout);
 
     private SemaphoreSlim GetLock(TKey key) => _locks.GetOrAdd(key, _ => new SemaphoreSlim(1));
 
