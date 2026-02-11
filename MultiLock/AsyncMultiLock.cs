@@ -38,8 +38,8 @@ public class AsyncMultiLock<TKey>
         return new LockAutoRelease(() => ReleaseLock(key));
     }
 
-    public IDisposable AcquireAutoReleaseLock(TKey key, int? lockAcquireTimeout)
-        => AcquireAutoReleaseLock(key, lockAcquireTimeout is null ? null : TimeSpan.FromMilliseconds(lockAcquireTimeout ?? 0));
+    public IDisposable AcquireAutoReleaseLock(TKey key, int? lockAcquireTimeoutMilliseconds)
+        => AcquireAutoReleaseLock(key, lockAcquireTimeoutMilliseconds?.MillisecondsToTimeSpan());
 
     public IDisposable AcquireAutoReleaseLock(TKey key)
         => AcquireAutoReleaseLock(key, LockAcquireTimeout);
@@ -63,8 +63,8 @@ public class AsyncMultiLock<TKey>
         return new LockAutoRelease(() => ReleaseLock(key));
     }
 
-    public async Task<IDisposable> AcquireAutoReleaseLockAsync(TKey key, int? lockAcquireTimeout)
-        => await AcquireAutoReleaseLockAsync(key, lockAcquireTimeout is null ? null : TimeSpan.FromMilliseconds(lockAcquireTimeout ?? 0));
+    public async Task<IDisposable> AcquireAutoReleaseLockAsync(TKey key, int? lockAcquireTimeoutMilliseconds)
+        => await AcquireAutoReleaseLockAsync(key, lockAcquireTimeoutMilliseconds?.MillisecondsToTimeSpan());
 
     public async Task<IDisposable> AcquireAutoReleaseLockAsync(TKey key)
         => await AcquireAutoReleaseLockAsync(key, LockAcquireTimeout);

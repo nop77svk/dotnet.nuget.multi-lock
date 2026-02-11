@@ -34,7 +34,7 @@ public class MultiLock<TKey, TLock>
     }
 
     public bool TryAcquireLock(TKey key, int? lockAcquireTimeoutMilliseconds, out TLock lockObject)
-        => TryAcquireLock(key, TimeSpan.FromMilliseconds(lockAcquireTimeoutMilliseconds ?? 0), out lockObject);
+        => TryAcquireLock(key, lockAcquireTimeoutMilliseconds?.MillisecondsToTimeSpan(), out lockObject);
 
     public bool TryAcquireLock(TKey key, out TLock lockObject)
         => TryAcquireLock(key, LockAcquireTimeout, out lockObject);
@@ -65,8 +65,8 @@ public class MultiLock<TKey, TLock>
         return isLockedUponKey;
     }
 
-    public bool ExecuteUnderLock(TKey key, Action lockedCode)
-        => TryExecuteUnderLock(key, LockAcquireTimeout, lockedCode);
+    public bool TryExecuteUnderLock(TKey key, int? lockAcquireTimeoutMilliseconds, Action lockedCode)
+        => TryExecuteUnderLock(key, lockAcquireTimeoutMilliseconds?.MillisecondsToTimeSpan(), lockedCode);
 
     public bool TryExecuteUnderLock(TKey key, Action lockedCode)
         => TryExecuteUnderLock(key, LockAcquireTimeout, lockedCode);
@@ -82,7 +82,7 @@ public class MultiLock<TKey, TLock>
     }
 
     public IDisposable AcquireAutoReleaseLock(TKey key, int? lockAcquireTimeout)
-        => AcquireAutoReleaseLock(key, lockAcquireTimeout is null ? null : TimeSpan.FromMilliseconds(lockAcquireTimeout ?? 0));
+        => AcquireAutoReleaseLock(key, lockAcquireTimeout?.MillisecondsToTimeSpan());
 
     public IDisposable AcquireAutoReleaseLock(TKey key)
         => AcquireAutoReleaseLock(key, LockAcquireTimeout);
