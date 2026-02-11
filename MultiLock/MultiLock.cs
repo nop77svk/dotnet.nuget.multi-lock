@@ -3,7 +3,6 @@ namespace NoP77svk.Threading;
 using System;
 using System.Collections.Concurrent;
 using System.Threading;
-using System.Threading.Tasks;
 
 public class MultiLock<TKey, TLock>
 {
