@@ -16,7 +16,7 @@
 		<PackageType>Library</PackageType>
 
 		<RepositoryType>git</RepositoryType>
-		<RepositoryUrl>https://github.com/nop77svk/dotnet.nuget.multi-lock</RepositoryUrl>
+		<RepositoryUrl>https://github.com/nop77svk/dotnet.nuget.multi-lock.git</RepositoryUrl>
 	</PropertyGroup>
 
 	<PropertyGroup Condition="'$(Configuration)' == 'Release'">
