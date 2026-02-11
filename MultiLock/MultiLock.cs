@@ -41,13 +41,8 @@ public class MultiLock<TKey, TLock>
 
     public void ReleaseLock(TKey key)
     {
-        _locks.TryRemove(key, out var lockObject);
-
-        if (lockObject is IDisposable disposable)
-        {
-            disposable.Dispose();
-        }
-
+        // note: We must first remove the lock from the collection, then release it, so that other threads may get the chance of adding it again after this lock release.
+        _locks.TryRemove(key, out TLock lockObject);
         Monitor.Exit(lockObject);
     }
 
