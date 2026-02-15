@@ -5,10 +5,10 @@
 		<OutputType>Library</OutputType>
 		<LangVersion>latest</LangVersion>
 
-		<RootNamespace>NoP77svk.Threading</RootNamespace>
-		<AssemblyName>NoP77svk.Threading</AssemblyName>
+		<RootNamespace>NoP77svk.Threading.MultiLock</RootNamespace>
+		<AssemblyName>NoP77svk.MultiLock</AssemblyName>
 
-		<PackageId>NoP77svk.Threading</PackageId>
+		<PackageId>NoP77svk.MultiLock</PackageId>
 		<PackageReadmeFile>README.md</PackageReadmeFile>
 		<PackageIcon>multi-lock.png</PackageIcon>
 		<PackageLicenseExpression>CC-BY-SA-4.0</PackageLicenseExpression>

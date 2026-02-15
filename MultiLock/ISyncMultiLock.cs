@@ -2,11 +2,11 @@ namespace NoP77svk.Threading;
 
 using System;
 
-public interface ISyncMultiLock<in TKey, TLock>
+public interface ISyncMultiLock<in TKey>
 {
-    TLock this[TKey key] { get; }
-    bool TryAcquireLock(TKey key, TimeSpan? lockAcquireTimeout, out TLock lockObject);
+    bool TryAcquireLock(TKey key);
+    bool TryAcquireLock(TKey key, TimeSpan? lockAcquireTimeout);
     void ReleaseLock(TKey key);
-    bool TryExecuteUnderLock(TKey key, TimeSpan? lockAcquireTimeout, Action lockedCode);
+    IDisposable AcquireAutoReleaseLock(TKey key);
     IDisposable AcquireAutoReleaseLock(TKey key, TimeSpan? lockAcquireTimeout);
 }
