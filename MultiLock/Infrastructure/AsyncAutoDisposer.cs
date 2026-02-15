@@ -1,4 +1,4 @@
-namespace NoP77svk.Threading;
+namespace NoP77svk.Threading.Infrastructure;
 
 using System;
 using System.Threading.Tasks;

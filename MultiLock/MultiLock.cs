@@ -4,6 +4,8 @@ using System;
 using System.Collections.Concurrent;
 using System.Threading;
 
+using NoP77svk.Threading.Infrastructure;
+
 public class MultiLock<TKey, TLock>
     : ISyncMultiLock<TKey>
 {

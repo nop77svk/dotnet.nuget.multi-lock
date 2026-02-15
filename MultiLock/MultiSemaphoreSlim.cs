@@ -5,6 +5,8 @@ using System.Collections.Concurrent;
 using System.Threading;
 using System.Threading.Tasks;
 
+using NoP77svk.Threading.Infrastructure;
+
 public class MultiSemaphoreSlim<TKey>
     : IHalfAsyncMultiLock<TKey>
 {
