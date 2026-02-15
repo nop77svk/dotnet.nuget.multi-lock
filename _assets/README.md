@@ -1,13 +1,17 @@
-# Multi-Lock - The keyed thread synchronisation
+# Multi-Locks - The keyed thread synchronisation
 
-This library introduces simple, yet out-of-the-box functionality for synchronising multiple threads dealing with the same data identifiable by a specific key.
+This library introduces simple, yet out-of-the-box functionality for synchronising multiple threads
+dealing with the same data identifiable by a specific key.
 
-Imagine you want to restrict calls to a web service or queries to a database table in your code. The webservice call or DB query is identifiable by a natural key used for accessing the resource. You may need to restrict your code so that only one thread accesses the resource at a time.
+Imagine you want to restrict calls to a web service or queries to a database table in your code.
+The webservice call or DB query is identifiable by a natural key used for accessing the resource.
+You may need to restrict your code so that only one thread accesses the resource at a time while
+other threads accessing other resource are not restricted.
 
 ## Features
 
 - Provide encapsulation of dealing with key-specific locks for both sync and async code.
-- Lightweight and (hopefully) fast.
+- Namespace `NoP77svk.Threading`, classes `MultiLock` and `MultiSemaphoreSlim`.
 - Open source and free to use.
 - (Yet to come...) Comprehensive unit tests to ensure reliability and documentation of examples.
 - Available on NuGet for easy integration into your projects.
@@ -16,7 +20,7 @@ Imagine you want to restrict calls to a web service or queries to a database tab
 
 - .NET Standard 2.1
 
-## Useful Links
+## Links
 
 - [Source Code](https://github.com/nop77svk/dotnet.nuget.multi-lock)
 - [Change Log](https://github.com/nop77svk/dotnet.nuget.multi-lock/releases)
