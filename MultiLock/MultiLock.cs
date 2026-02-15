@@ -4,124 +4,106 @@ using System;
 using System.Collections.Concurrent;
 using System.Threading;
 
+using NoP77svk.Threading.Infrastructure;
+
 public class MultiLock<TKey, TLock>
+    : ISyncMultiLock<TKey>
 {
     private readonly ConcurrentDictionary<TKey, TLock> _locks = new();
+
     private readonly Func<TKey, TLock> _lockInstanceSelector;
+    private readonly Func<TLock, bool> _lockAcquirer;
+    private readonly Func<TLock, TimeSpan, bool> _lockWithTimeoutAcquirer;
+    private readonly Action<TLock> _lockReleaser;
 
-    public TimeSpan? LockAcquireTimeout { get; init; } = null;
-
-    public MultiLock(Func<TKey, TLock> lockInstanceSelector)
+    public MultiLock(Func<TKey, TLock> lockInstanceCreator)
+        : this(
+            lockInstanceCreator: lockInstanceCreator,
+            lockAcquirer: lockOobject => Monitor.TryEnter(lockOobject),
+            lockWithTimeoutAcquirer: (lockObject, lockAcquireTimeout) => Monitor.TryEnter(lockObject, lockAcquireTimeout),
+            lockReleaser: lockObject => Monitor.Exit(lockObject)
+        )
     {
-        _lockInstanceSelector = lockInstanceSelector;
     }
 
-    public TLock this[TKey key] => GetLock(key);
-
-    public bool TryAcquireLock(TKey key, TimeSpan? lockAcquireTimeout, out TLock lockObject)
+    protected MultiLock(Func<TKey, TLock> lockInstanceCreator, Func<TLock, bool> lockAcquirer, Func<TLock, TimeSpan, bool> lockWithTimeoutAcquirer, Action<TLock> lockReleaser)
     {
-        lockObject = GetLock(key);
+        _lockInstanceSelector = lockInstanceCreator;
+        _lockAcquirer = lockAcquirer;
+        _lockWithTimeoutAcquirer = lockWithTimeoutAcquirer;
+        _lockReleaser = lockReleaser;
+    }
 
-        bool lockAcquired = lockAcquireTimeout is null
-            ? Monitor.TryEnter(lockObject)
-            : Monitor.TryEnter(lockObject, (TimeSpan)lockAcquireTimeout);
+    public bool TryAcquireLock(TKey key)
+    {
+        TLock lockObject = GetOrCreateLockObject(key);
+        bool lockAcquired = _lockAcquirer(lockObject);
 
-        // note: Let's add the lock again, since another thread may just have removed it from the collection upon lock release.
-        _locks.TryAdd(key, lockObject);
+        if (lockAcquired)
+        {
+            // note: Let's add the lock again, since another thread may just have removed it from the collection upon lock release.
+            _locks.TryAdd(key, lockObject);
+        }
 
         return lockAcquired;
     }
 
-    public bool TryAcquireLock(TKey key, int? lockAcquireTimeoutMilliseconds, out TLock lockObject)
-        => TryAcquireLock(key, lockAcquireTimeoutMilliseconds?.MillisecondsToTimeSpan(), out lockObject);
+    public bool TryAcquireLock(TKey key, TimeSpan? lockAcquireTimeout)
+    {
+        TLock lockObject = GetOrCreateLockObject(key);
+        bool lockAcquired = _lockWithTimeoutAcquirer(lockObject, lockAcquireTimeout ?? lockAcquireTimeout ?? TimeSpan.Zero);
 
-    public bool TryAcquireLock(TKey key, out TLock lockObject)
-        => TryAcquireLock(key, LockAcquireTimeout, out lockObject);
+        if (lockAcquired)
+        {
+            // note: Let's add the lock again, since another thread may just have removed it from the collection upon lock release.
+            _locks.TryAdd(key, lockObject);
+        }
+
+        return lockAcquired;
+    }
+
+    public bool TryAcquireLock(TKey key, int? lockAcquireTimeoutMilliseconds)
+        => TryAcquireLock(key, lockAcquireTimeoutMilliseconds?.MillisecondsToTimeSpan());
 
     public void ReleaseLock(TKey key)
     {
         // note: We must first remove the lock from the collection, then release it, so that other threads may get the chance of adding it again after this lock release.
         _locks.TryRemove(key, out TLock lockObject);
-        Monitor.Exit(lockObject);
+        _lockReleaser(lockObject);
     }
 
-    public bool TryExecuteUnderLock(TKey key, TimeSpan? lockAcquireTimeout, Action lockedCode)
+    public IDisposable AcquireAutoReleaseLock(TKey key)
     {
-        bool isLockedUponKey = TryAcquireLock(key, lockAcquireTimeout, out var _);
-
-        if (isLockedUponKey)
-        {
-            try
-            {
-                lockedCode?.Invoke();
-            }
-            finally
-            {
-                ReleaseLock(key);
-            }
-        }
-
-        return isLockedUponKey;
-    }
-
-    public bool TryExecuteUnderLock(TKey key, int? lockAcquireTimeoutMilliseconds, Action lockedCode)
-        => TryExecuteUnderLock(key, lockAcquireTimeoutMilliseconds?.MillisecondsToTimeSpan(), lockedCode);
-
-    public bool TryExecuteUnderLock(TKey key, Action lockedCode)
-        => TryExecuteUnderLock(key, LockAcquireTimeout, lockedCode);
-
-    public IDisposable AcquireAutoReleaseLock(TKey key, TimeSpan? lockAcquireTimeout)
-    {
-        if (!TryAcquireLock(key, lockAcquireTimeout, out TLock _))
+        if (!TryAcquireLock(key))
         {
             throw new TimeoutException($"Failed to acquire lock on key {key}");
         }
 
-        return new LockAutoRelease(() => ReleaseLock(key));
+        return new AutoDisposer(() => ReleaseLock(key));
+    }
+
+    public IDisposable AcquireAutoReleaseLock(TKey key, TimeSpan? lockAcquireTimeout)
+    {
+        lockAcquireTimeout = lockAcquireTimeout ?? lockAcquireTimeout;
+        if (!TryAcquireLock(key, lockAcquireTimeout))
+        {
+            throw new TimeoutException($"Failed to acquire lock on key {key} in {lockAcquireTimeout}");
+        }
+
+        return new AutoDisposer(() => ReleaseLock(key));
     }
 
     public IDisposable AcquireAutoReleaseLock(TKey key, int? lockAcquireTimeout)
         => AcquireAutoReleaseLock(key, lockAcquireTimeout?.MillisecondsToTimeSpan());
 
-    public IDisposable AcquireAutoReleaseLock(TKey key)
-        => AcquireAutoReleaseLock(key, LockAcquireTimeout);
-
-    private TLock GetLock(TKey key) => _locks.GetOrAdd(key, _lockInstanceSelector);
-
-    private class LockAutoRelease : IDisposable
-    {
-        private readonly Action _releaseAction;
-        private bool disposedValue;
-
-        public LockAutoRelease(Action releaseAction) => _releaseAction = releaseAction;
-
-        public void Dispose()
-        {
-            // Do not change this code. Put cleanup code in 'Dispose(bool disposing)' method
-            Dispose(disposing: true);
-            GC.SuppressFinalize(this);
-        }
-
-        protected virtual void Dispose(bool disposing)
-        {
-            if (!disposedValue)
-            {
-                if (disposing)
-                {
-                    _releaseAction?.Invoke();
-                }
-
-                disposedValue = true;
-            }
-        }
-    }
+    private TLock GetOrCreateLockObject(TKey key) => _locks.GetOrAdd(key, _lockInstanceSelector);
 }
 
 public class MultiLock<TKey>
     : MultiLock<TKey, object>
 {
     public MultiLock()
-        : base(key => new object())
+        : base(_ => new object())
     {
     }
 }

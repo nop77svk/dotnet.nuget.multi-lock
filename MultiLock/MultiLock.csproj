@@ -6,9 +6,9 @@
 		<LangVersion>latest</LangVersion>
 
 		<RootNamespace>NoP77svk.Threading</RootNamespace>
-		<AssemblyName>NoP77svk.Threading</AssemblyName>
+		<AssemblyName>NoP77svk.Threading.MultiLock</AssemblyName>
 
-		<PackageId>NoP77svk.Threading</PackageId>
+		<PackageId>NoP77svk.Threading.MultiLock</PackageId>
 		<PackageReadmeFile>README.md</PackageReadmeFile>
 		<PackageIcon>multi-lock.png</PackageIcon>
 		<PackageLicenseExpression>CC-BY-SA-4.0</PackageLicenseExpression>
@@ -24,9 +24,9 @@
 	</PropertyGroup>
 
 	<ItemGroup>
-		<None Include="$(ProjectDir)/../_assets/README.md" Pack="true" PackagePath="/" />
-		<None Include="$(ProjectDir)/../_assets/multi-lock.png" Pack="true" PackagePath="/" />
-		<None Include="$(ProjectDir)/../_assets/LICENSE" Pack="true" PackagePath="/" />
+		<None Include="$(ProjectDir)../_assets/README.md" Pack="true" PackagePath="/" />
+		<None Include="$(ProjectDir)../_assets/multi-lock.png" Pack="true" PackagePath="/" />
+		<None Include="$(ProjectDir)../_assets/LICENSE" Pack="true" PackagePath="/" />
 	</ItemGroup>
 
 </Project>
