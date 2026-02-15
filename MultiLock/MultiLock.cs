@@ -4,7 +4,7 @@ using System;
 using System.Collections.Concurrent;
 using System.Threading;
 
-public partial class SimpleMultiLock<TKey, TLock>
+public class MultiLock<TKey, TLock>
     : ISyncMultiLock<TKey>
 {
     private readonly ConcurrentDictionary<TKey, TLock> _locks = new();
@@ -14,7 +14,7 @@ public partial class SimpleMultiLock<TKey, TLock>
     private readonly Func<TLock, TimeSpan, bool> _lockWithTimeoutAcquirer;
     private readonly Action<TLock> _lockReleaser;
 
-    public SimpleMultiLock(Func<TKey, TLock> lockInstanceCreator)
+    public MultiLock(Func<TKey, TLock> lockInstanceCreator)
         : this(
             lockInstanceCreator: lockInstanceCreator,
             lockAcquirer: lockOobject => Monitor.TryEnter(lockOobject),
@@ -24,7 +24,7 @@ public partial class SimpleMultiLock<TKey, TLock>
     {
     }
 
-    protected SimpleMultiLock(Func<TKey, TLock> lockInstanceCreator, Func<TLock, bool> lockAcquirer, Func<TLock, TimeSpan, bool> lockWithTimeoutAcquirer, Action<TLock> lockReleaser)
+    protected MultiLock(Func<TKey, TLock> lockInstanceCreator, Func<TLock, bool> lockAcquirer, Func<TLock, TimeSpan, bool> lockWithTimeoutAcquirer, Action<TLock> lockReleaser)
     {
         _lockInstanceSelector = lockInstanceCreator;
         _lockAcquirer = lockAcquirer;
@@ -95,4 +95,13 @@ public partial class SimpleMultiLock<TKey, TLock>
         => AcquireAutoReleaseLock(key, lockAcquireTimeout?.MillisecondsToTimeSpan());
 
     private TLock GetOrCreateLockObject(TKey key) => _locks.GetOrAdd(key, _lockInstanceSelector);
+}
+
+public class MultiLock<TKey>
+    : MultiLock<TKey, object>
+{
+    public MultiLock()
+        : base(_ => new object())
+    {
+    }
 }
