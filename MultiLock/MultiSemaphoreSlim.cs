@@ -5,12 +5,10 @@ using System.Collections.Concurrent;
 using System.Threading;
 using System.Threading.Tasks;
 
-public class MultiSemaphore<TKey>
+public class MultiSemaphoreSlim<TKey>
     : IHalfAsyncMultiLock<TKey>
 {
     private readonly ConcurrentDictionary<TKey, SemaphoreSlim> _locks = new();
-
-    public TimeSpan? LockAcquireTimeout { get; init; } = null;
 
     public async ValueTask TryAcquireLockAsync(TKey key)
     {
@@ -21,19 +19,22 @@ public class MultiSemaphore<TKey>
         _locks.TryAdd(key, semaphore);
     }
 
-    public async ValueTask<bool> TryAcquireLockAsync(TKey key, TimeSpan? lockAcquireTimeout)
+    public async ValueTask<bool> TryAcquireLockAsync(TKey key, TimeSpan lockAcquireTimeout)
     {
         SemaphoreSlim semaphore = GetOrCreateSemaphore(key);
-        bool lockAcquired = await semaphore.WaitAsync(lockAcquireTimeout ?? TimeSpan.Zero);
+        bool lockAcquired = await semaphore.WaitAsync(lockAcquireTimeout);
 
-        // note: Let's add the lock again, since another thread may just have removed it from the collection upon lock release.
-        _locks.TryAdd(key, semaphore);
+        if (lockAcquired)
+        {
+            // note: Let's add the lock again, since another thread may just have removed it from the collection upon lock release.
+            _locks.TryAdd(key, semaphore);
+        }
 
         return lockAcquired;
     }
 
-    public async ValueTask<bool> TryAcquireLockAsync(TKey key, int? lockAcquireTimeout)
-        => await TryAcquireLockAsync(key, lockAcquireTimeout?.MillisecondsToTimeSpan());
+    public async ValueTask<bool> TryAcquireLockAsync(TKey key, int lockAcquireTimeout)
+        => await TryAcquireLockAsync(key, lockAcquireTimeout.MillisecondsToTimeSpan());
 
     public void ReleaseLock(TKey key)
     {
@@ -47,9 +48,8 @@ public class MultiSemaphore<TKey>
         return new AutoDisposer(() => ReleaseLock(key));
     }
 
-    public async ValueTask<IDisposable> AcquireAutoReleaseLockAsync(TKey key, TimeSpan? lockAcquireTimeout)
+    public async ValueTask<IDisposable> AcquireAutoReleaseLockAsync(TKey key, TimeSpan lockAcquireTimeout)
     {
-        lockAcquireTimeout = lockAcquireTimeout ?? lockAcquireTimeout;
         if (!await TryAcquireLockAsync(key, lockAcquireTimeout))
         {
             throw new TimeoutException($"Failed to acquire lock on key {key} in {lockAcquireTimeout}");
@@ -58,8 +58,8 @@ public class MultiSemaphore<TKey>
         return new AutoDisposer(() => ReleaseLock(key));
     }
 
-    public async ValueTask<IDisposable> AcquireAutoReleaseLockAsync(TKey key, int? lockAcquireTimeoutMilliseconds)
-        => await AcquireAutoReleaseLockAsync(key, lockAcquireTimeoutMilliseconds?.MillisecondsToTimeSpan());
+    public async ValueTask<IDisposable> AcquireAutoReleaseLockAsync(TKey key, int lockAcquireTimeoutMilliseconds)
+        => await AcquireAutoReleaseLockAsync(key, lockAcquireTimeoutMilliseconds.MillisecondsToTimeSpan());
 
     private SemaphoreSlim GetOrCreateSemaphore(TKey key)
         => _locks.GetOrAdd(key, _ => new SemaphoreSlim(1));

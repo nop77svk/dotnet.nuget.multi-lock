@@ -6,8 +6,8 @@ using System.Threading.Tasks;
 public interface IHalfAsyncMultiLock<TKey>
 {
     ValueTask TryAcquireLockAsync(TKey key);
-    ValueTask<bool> TryAcquireLockAsync(TKey key, TimeSpan? lockAcquireTimeout);
+    ValueTask<bool> TryAcquireLockAsync(TKey key, TimeSpan lockAcquireTimeout);
     void ReleaseLock(TKey key);
     ValueTask<IDisposable> AcquireAutoReleaseLockAsync(TKey key);
-    ValueTask<IDisposable> AcquireAutoReleaseLockAsync(TKey key, TimeSpan? lockAcquireTimeout);
+    ValueTask<IDisposable> AcquireAutoReleaseLockAsync(TKey key, TimeSpan lockAcquireTimeout);
 }
