@@ -1,11 +1,12 @@
 ﻿<Project>
 	<PropertyGroup Label="Global Project Settings">
-		<ImplicitUsings>false</ImplicitUsings>
+		<ImplicitUsings>enable</ImplicitUsings>
 		<Nullable>enable</Nullable>
+        <LangVersion>latest</LangVersion>
 
 		<Product>Multi-Lock</Product>
 		<Authors>Peter Hraško</Authors>
-		<Company>Open source community</Company>
+		<Company>Subsecond I/O, s.r.o., Slovakia</Company>
 		<Copyright>Practically copyleft</Copyright>
 		<NoWarn>1701;1702;AD0001;NETSDK1182</NoWarn>
 
@@ -19,6 +20,10 @@
 			<PrivateAssets>all</PrivateAssets>
 		</PackageReference>
 		<PackageReference Include="StyleCop.Analyzers" Version="*">
+			<PrivateAssets>all</PrivateAssets>
+			<IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+		</PackageReference>
+		<PackageReference Include="Meziantou.Analyzer" Version="*">
 			<PrivateAssets>all</PrivateAssets>
 			<IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
 		</PackageReference>
